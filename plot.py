@@ -11,7 +11,7 @@ st.set_page_config(layout="wide")
 st.title("Australia Temperature Anomaly Heatmaps (BOM Style)")
 
 # Load dataset
-df = pd.read_csv("C:/Users/Sukkiiii/Desktop/ME_DATA/Final_Data.csv")
+df = pd.read_csv("Final_Data.csv")
 
 # Create output dir for maps if not exist
 os.makedirs("map_thumbnails", exist_ok=True)
