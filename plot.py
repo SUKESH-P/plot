@@ -40,6 +40,7 @@ def plot_map(df_year, year, save_path=None, size=(6, 4)):
     )
 
     grid_vals = griddata((lons, lats), vals, (lon_grid, lat_grid), method='cubic')
+    grid_vals = np.ma.masked_invalid(grid_vals)  # Masking invalid extrapolated areas
 
     fig = plt.figure(figsize=size)
     ax = plt.axes(projection=ccrs.PlateCarree())
@@ -48,7 +49,13 @@ def plot_map(df_year, year, save_path=None, size=(6, 4)):
     ax.add_feature(cfeature.BORDERS, linestyle=':')
     ax.add_feature(cfeature.STATES, linestyle=':')
     ax.set_title(f"{year} - Temperature Anomaly (°C)")
-    c = ax.contourf(lon_grid, lat_grid, grid_vals, cmap="RdYlGn_r", transform=ccrs.PlateCarree())
+
+    c = ax.contourf(
+        lon_grid, lat_grid, grid_vals,
+        cmap="RdYlGn_r",
+        transform=ccrs.PlateCarree()
+    )
+
     if size[0] > 5:
         plt.colorbar(c, ax=ax, orientation="vertical", label="Anomaly (°C)")
 
@@ -57,6 +64,7 @@ def plot_map(df_year, year, save_path=None, size=(6, 4)):
         plt.close(fig)
     else:
         st.pyplot(fig)
+
 
 # Show enlarged selected map
 df_selected = df[df['year'] == selected_year]
