@@ -4,3 +4,4 @@ cartopy
 scipy
 pandas
 numpy
+shapely
