@@ -50,23 +50,20 @@ def plot_map(df_year, year, save_path=None, size=(6, 4)):
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.set_extent([110, 155, -45, -10], crs=ccrs.PlateCarree())
 
-    # Add base map features
-    ax.add_feature(cfeature.COASTLINE)
-    ax.add_feature(cfeature.BORDERS, linestyle=':')
-    ax.add_feature(cfeature.STATES, linestyle=':')
+    # Add base features (ocean below everything)
+    ax.add_feature(cfeature.OCEAN, zorder=0)
+    ax.add_feature(cfeature.COASTLINE, linewidth=0.5)
+    ax.add_feature(cfeature.BORDERS, linestyle=':', linewidth=0.5)
+    ax.add_feature(cfeature.STATES, linestyle=':', linewidth=0.3)
 
-    # Add land mask (draw land on top of the contour)
-    ax.add_feature(cfeature.LAND, zorder=2, edgecolor='face')
-    ax.add_feature(cfeature.OCEAN, zorder=1)
-
-    # Draw heatmap under land mask
+    # Plot heatmap on top of ocean, under coastlines
     c = ax.contourf(
         lon_grid,
         lat_grid,
         grid_vals,
         cmap="RdYlGn_r",
         transform=ccrs.PlateCarree(),
-        zorder=0  # Plot behind land
+        zorder=1  # Should be above ocean, under coastlines
     )
 
     ax.set_title(f"{year} - Temperature Anomaly (°C)")
@@ -78,6 +75,7 @@ def plot_map(df_year, year, save_path=None, size=(6, 4)):
         plt.close(fig)
     else:
         st.pyplot(fig)
+
 # Show enlarged selected map
 df_selected = df[df['year'] == selected_year]
 st.subheader(f"Enlarged Heatmap for {selected_year}")
