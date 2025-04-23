@@ -18,7 +18,15 @@ os.makedirs("map_thumbnails", exist_ok=True)
 
 # Get unique years
 years = sorted(df['year'].unique())
-selected_year = st.selectbox("🔍 Select a year to enlarge", years)
+
+# Use a slider instead of a dropdown
+selected_year = st.slider(
+    "📅 Select a year to enlarge",
+    min_value=int(min(years)),
+    max_value=int(max(years)),
+    value=int(min(years)),
+    step=1
+)
 
 # Function to plot interpolated map
 def plot_map(df_year, year, save_path=None, size=(6, 4)):
@@ -59,14 +67,16 @@ plot_map(df_selected, selected_year, size=(8, 6))
 st.subheader("📅 Yearly Heatmap Gallery")
 thumb_cols = st.columns(6)
 
+# Optional: preprocess to avoid slicing every time in loop
+year_dfs = {year: df[df['year'] == year] for year in years}
+
 for idx, year in enumerate(years):
     col = thumb_cols[idx % 6]
     thumbnail_path = f"map_thumbnails/{year}.png"
 
     # Generate thumbnail if not already saved
     if not os.path.exists(thumbnail_path):
-        df_year = df[df['year'] == year]
-        plot_map(df_year, year, save_path=thumbnail_path, size=(2.5, 2))
+        plot_map(year_dfs[year], year, save_path=thumbnail_path, size=(2.5, 2))
 
     # Display in grid
     with col:
