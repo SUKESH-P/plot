@@ -6,6 +6,11 @@ import cartopy.feature as cfeature
 from scipy.interpolate import griddata
 import numpy as np
 import os
+from cartopy.io import shapereader
+import geopandas as gpd
+from shapely.geometry import Point
+from shapely.geometry import Polygon
+
 
 st.set_page_config(layout="wide")
 st.title("Australia Temperature Anomaly Heatmaps (BOM Style)")
@@ -34,6 +39,10 @@ from cartopy.feature import ShapelyFeature
 import shapely.geometry as sgeom
 
 def plot_map(df_year, year, save_path=None, size=(6, 4)):
+    import geopandas as gpd
+    from shapely.geometry import Point
+
+    # Interpolation prep
     lats = df_year['latitude'].values
     lons = df_year['longitude'].values
     vals = df_year['anomaly'].values
@@ -44,26 +53,31 @@ def plot_map(df_year, year, save_path=None, size=(6, 4)):
     )
 
     grid_vals = griddata((lons, lats), vals, (lon_grid, lat_grid), method='cubic')
-    grid_vals = np.ma.masked_invalid(grid_vals)
 
+    # Load Australia geometry
+    world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+    australia = world[world.name == 'Australia'].geometry.values[0]
+
+    # Mask: convert grid to points and keep only those in Australia
+    mask = np.array([
+        australia.contains(Point(x, y)) for x, y in zip(lon_grid.flatten(), lat_grid.flatten())
+    ])
+    masked_vals = np.where(mask, grid_vals.flatten(), np.nan).reshape(grid_vals.shape)
+    masked_vals = np.ma.masked_invalid(masked_vals)
+
+    # Plotting
     fig = plt.figure(figsize=size)
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.set_extent([110, 155, -45, -10], crs=ccrs.PlateCarree())
 
-    # Add base features (ocean below everything)
-    ax.add_feature(cfeature.OCEAN, zorder=0)
-    ax.add_feature(cfeature.COASTLINE, linewidth=0.5)
-    ax.add_feature(cfeature.BORDERS, linestyle=':', linewidth=0.5)
-    ax.add_feature(cfeature.STATES, linestyle=':', linewidth=0.3)
+    ax.add_feature(cfeature.COASTLINE)
+    ax.add_feature(cfeature.BORDERS, linestyle=':')
+    ax.add_feature(cfeature.STATES, linestyle=':')
 
-    # Plot heatmap on top of ocean, under coastlines
     c = ax.contourf(
-        lon_grid,
-        lat_grid,
-        grid_vals,
+        lon_grid, lat_grid, masked_vals,
         cmap="RdYlGn_r",
-        transform=ccrs.PlateCarree(),
-        zorder=1  # Should be above ocean, under coastlines
+        transform=ccrs.PlateCarree()
     )
 
     ax.set_title(f"{year} - Temperature Anomaly (°C)")
