@@ -29,6 +29,10 @@ selected_year = st.slider(
 )
 
 # Function to plot interpolated map
+from cartopy.io import shapereader
+from cartopy.feature import ShapelyFeature
+import shapely.geometry as sgeom
+
 def plot_map(df_year, year, save_path=None, size=(6, 4)):
     lats = df_year['latitude'].values
     lons = df_year['longitude'].values
@@ -40,22 +44,32 @@ def plot_map(df_year, year, save_path=None, size=(6, 4)):
     )
 
     grid_vals = griddata((lons, lats), vals, (lon_grid, lat_grid), method='cubic')
-    grid_vals = np.ma.masked_invalid(grid_vals)  # Masking invalid extrapolated areas
+    grid_vals = np.ma.masked_invalid(grid_vals)
 
     fig = plt.figure(figsize=size)
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.set_extent([110, 155, -45, -10], crs=ccrs.PlateCarree())
+
+    # Add base map features
     ax.add_feature(cfeature.COASTLINE)
     ax.add_feature(cfeature.BORDERS, linestyle=':')
     ax.add_feature(cfeature.STATES, linestyle=':')
-    ax.set_title(f"{year} - Temperature Anomaly (°C)")
 
+    # Add land mask (draw land on top of the contour)
+    ax.add_feature(cfeature.LAND, zorder=2, edgecolor='face')
+    ax.add_feature(cfeature.OCEAN, zorder=1)
+
+    # Draw heatmap under land mask
     c = ax.contourf(
-        lon_grid, lat_grid, grid_vals,
+        lon_grid,
+        lat_grid,
+        grid_vals,
         cmap="RdYlGn_r",
-        transform=ccrs.PlateCarree()
+        transform=ccrs.PlateCarree(),
+        zorder=0  # Plot behind land
     )
 
+    ax.set_title(f"{year} - Temperature Anomaly (°C)")
     if size[0] > 5:
         plt.colorbar(c, ax=ax, orientation="vertical", label="Anomaly (°C)")
 
@@ -64,8 +78,6 @@ def plot_map(df_year, year, save_path=None, size=(6, 4)):
         plt.close(fig)
     else:
         st.pyplot(fig)
-
-
 # Show enlarged selected map
 df_selected = df[df['year'] == selected_year]
 st.subheader(f"Enlarged Heatmap for {selected_year}")
